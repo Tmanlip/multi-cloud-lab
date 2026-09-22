@@ -1,0 +1,25 @@
+                         GitHub
+                           │
+                           ▼
+                    GitHub Actions
+                           │
+                     Terraform CI/CD
+                           │
+              ┌────────────┴────────────┐
+              │                         │
+            OIDC                      OIDC
+              │                         │
+              ▼                         ▼
+      Microsoft Azure                  AWS
+              │                         │
+       ┌──────┴──────┐          ┌──────┴──────┐
+       │             │          │             │
+      VNet        Function     VPC          Lambda
+   10.10.0.0/16       │     10.20.0.0/16      │
+       │               │          │             │
+      NSG        Managed ID    Security       IAM Role
+                       │        Groups           │
+                       │                         │
+                  Blob Storage                  S3
+                       │                         │
+                 Azure Monitor              CloudWatch

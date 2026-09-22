@@ -1,0 +1,24 @@
+                MULTICLOUD FORGE NETWORK
+
+       AZURE                              AWS
+
+ VNet 10.10.0.0/16                VPC 10.20.0.0/16
+         │                                │
+    ┌────┴─────┐                     ┌────┴─────┐
+    │          │                     │          │
+    ▼          ▼                     ▼          ▼
+
+Application  Private             Application  Private
+Subnet       Subnet              Subnet       Subnet
+
+10.10.1/24   10.10.2/24          10.20.1/24   10.20.2/24
+
+         │                                │
+        NSG                         Security Groups
+
+
+ Reserved:                         Reserved:
+ 10.10.10.0/24                    10.20.10.0/24
+
+
+       NO DIRECT AZURE ↔ AWS CONNECTION
