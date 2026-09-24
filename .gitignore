@@ -9,6 +9,8 @@ crash.*.log
 # Terraform variable files containing secrets
 *.auto.tfvars
 *.auto.tfvars.json
+*.tfvars
+!*.tfvars.example
 
 # Environment variables
 .env
@@ -33,7 +35,17 @@ __pycache__/
 # IDE
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db
 
 # Operating System
 .DS_Store
 Thumbs.db
+
+# Crash Logs
+crash.log
+crash.*.log
+
+# AWS credentials / exported access keys
+*_accessKeys.csv
+*_accesskeys.csv
