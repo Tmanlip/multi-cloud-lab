@@ -1,197 +1,162 @@
 # MultiCloud Forge — Network Architecture
 
-## 1. Overview
+## Overview
 
-MultiCloud Forge uses separate non-overlapping private address spaces
-for Microsoft Azure and AWS.
+MultiCloud Forge uses isolated Azure and AWS networks managed through Terraform.
 
-Azure:
-
-    10.10.0.0/16
-
-AWS:
-
-    10.20.0.0/16
-
-Non-overlapping CIDR ranges allow future connectivity between the two
-cloud environments without requiring network renumbering.
+The development environment does not implement direct cross-cloud connectivity.
+Azure and AWS therefore operate as independent network domains.
 
 ---
 
-## 2. Azure Network
+## Azure Network
 
 ### Virtual Network
 
-Name:
-
-    vnet-mcf-dev-sea
-
-CIDR:
-
-    10.10.0.0/16
+| Resource | Value |
+|---|---|
+| VNet | `vnet-mcf-dev-sea` |
+| Region | Southeast Asia |
+| Address Space | `10.10.0.0/16` |
 
 ### Subnets
 
-Application subnet:
+| Subnet | CIDR | Purpose |
+|---|---|---|
+| `snet-mcf-app-dev-sea` | `10.10.1.0/24` | Application/serverless integration |
+| `snet-mcf-private-dev-sea` | `10.10.2.0/24` | Private/service resources |
+| Reserved | `10.10.10.0/24` | Future expansion |
 
-    10.10.1.0/24
+### Network Security Groups
 
-Purpose:
+- `nsg-mcf-app-dev-sea`
+- `nsg-mcf-private-dev-sea`
 
-Application/serverless integration resources where required.
+No custom inbound rules are currently configured.
 
-Private/service subnet:
-
-    10.10.2.0/24
-
-Purpose:
-
-Private or service-integrated resources.
-
-Reserved subnet:
-
-    10.10.10.0/24
-
-Purpose:
-
-Reserved for future architecture expansion.
+Custom rules will only be introduced when a workload has a documented
+network requirement.
 
 ---
 
-## 3. AWS Network
+## AWS Network
 
 ### VPC
 
-Name:
-
-    mcf-dev-vpc
-
-CIDR:
-
-    10.20.0.0/16
+| Resource | Value |
+|---|---|
+| VPC | `mcf-dev-vpc` |
+| Region | `ap-southeast-1` |
+| Address Space | `10.20.0.0/16` |
 
 ### Subnets
 
-Application subnet:
-
-    10.20.1.0/24
-
-Purpose:
-
-Application-facing resources where required.
-
-Private subnet:
-
-    10.20.2.0/24
-
-Purpose:
-
-Resources that should not require direct inbound Internet access.
-
-Reserved subnet:
-
-    10.20.10.0/24
-
-Purpose:
-
-Reserved for future architecture expansion.
-
----
-
-## 4. CIDR Summary
-
-| Provider | Network | CIDR |
+| Subnet | CIDR | Type |
 |---|---|---|
-| Azure | VNet | 10.10.0.0/16 |
-| Azure | Application | 10.10.1.0/24 |
-| Azure | Private/Service | 10.10.2.0/24 |
-| Azure | Reserved | 10.10.10.0/24 |
-| AWS | VPC | 10.20.0.0/16 |
-| AWS | Application | 10.20.1.0/24 |
-| AWS | Private | 10.20.2.0/24 |
-| AWS | Reserved | 10.20.10.0/24 |
+| `mcf-dev-public-subnet` | `10.20.1.0/24` | Public/Application |
+| `mcf-dev-private-subnet` | `10.20.2.0/24` | Private/Service |
+| Reserved | `10.20.10.0/24` | Future expansion |
+
+### Public Routing
+
+The public subnet is associated with a dedicated public route table.
+
+Traffic path:
+
+Public Subnet
+→ Public Route Table
+→ `0.0.0.0/0`
+→ Internet Gateway
+→ Internet
+
+Resources must still have an appropriate public IP and security-group
+rules before they can receive traffic from the Internet.
+
+### Private Routing
+
+The private subnet uses a dedicated private route table.
+
+There is no default Internet route and no NAT Gateway.
+
+This keeps the development environment inexpensive while maintaining
+clear public/private network separation.
+
+### Security Groups
+
+- `mcf-dev-app-sg`
+- `mcf-dev-private-sg`
+
+No inbound rules are currently configured.
+
+Outbound traffic is permitted by the security groups, but the private
+subnet does not have an Internet route.
 
 ---
 
-## 5. Network Security
+## Cross-Cloud Connectivity
 
-### Azure
+There is currently no:
 
-Azure Network Security Groups will control network traffic where
-applicable.
+- Site-to-Site VPN
+- VNet-to-VPC peering
+- Transit Gateway
+- Virtual WAN
+- Direct Connect
+- ExpressRoute
 
-Rules should follow these principles:
+Azure and AWS therefore have no direct private network route between
+`10.10.0.0/16` and `10.20.0.0/16`.
 
-- Deny unnecessary inbound access.
-- Allow only required application traffic.
-- Avoid broad management access from the Internet.
-- Document the purpose of every custom rule.
-
-### AWS
-
-AWS Security Groups will provide workload-level traffic filtering.
-
-Rules should follow these principles:
-
-- Only required inbound traffic is permitted.
-- Outbound permissions should be documented.
-- Administrative ports should not be exposed unnecessarily.
-- Security groups should be associated with specific workloads.
+Cross-cloud communication introduced by later application components
+will use authenticated application/API communication rather than direct
+private network routing.
 
 ---
 
-## 6. Public and Private Resources
+## CIDR Allocation
 
-Internet-facing resources should be limited to components that
-explicitly require public access.
+| Cloud | Network | CIDR |
+|---|---|---|
+| Azure | VNet | `10.10.0.0/16` |
+| Azure | Application | `10.10.1.0/24` |
+| Azure | Private | `10.10.2.0/24` |
+| Azure | Reserved | `10.10.10.0/24` |
+| AWS | VPC | `10.20.0.0/16` |
+| AWS | Public/Application | `10.20.1.0/24` |
+| AWS | Private | `10.20.2.0/24` |
+| AWS | Reserved | `10.20.10.0/24` |
 
-The health API must be reachable for infrastructure validation.
-
-Storage services should not be made publicly writable.
-
-Private resources should not receive public exposure unless there is
-a documented technical requirement.
+The Azure and AWS CIDR ranges do not overlap, leaving the architecture
+compatible with future private cross-cloud connectivity if required.
 
 ---
 
-## 7. Cross-Cloud Connectivity
+## Cost Considerations
 
-Azure and AWS will not initially have direct private connectivity.
+The development network intentionally avoids cost-heavy networking
+components such as:
 
-Current topology:
-
-    Internet
-       |
-       +----------------+
-       |                |
-       v                v
-     Azure             AWS
-    10.10/16          10.20/16
-
-There is no:
-
-- Site-to-site VPN
-- Azure VPN Gateway
+- AWS NAT Gateway
 - AWS Transit Gateway
-- Dedicated connection
-- Cross-cloud routing
+- Azure VPN Gateway
+- Azure Firewall
 
-The separate address spaces nevertheless allow these technologies to
-be evaluated in a future extension.
+The network therefore demonstrates segmentation, routing, and security
+controls while keeping recurring lab costs low.
 
 ---
 
-## 8. Network Validation
+## Terraform Management
 
-Networking tests should eventually verify:
+The Azure and AWS networks are managed through reusable Terraform
+modules:
 
-- Expected application connectivity
-- Health endpoint availability
-- Required outbound communication
-- Unauthorized network paths are denied
-- Storage is not unintentionally exposed
-- Security rules match documented requirements
+`terraform/modules/azure-network`
 
-Expected and actual test results will be recorded under:
+`terraform/modules/aws-network`
 
-    tests/connectivity/
+Both modules are instantiated from:
+
+`terraform/environments/dev`
+
+Terraform state is stored remotely in Azure Blob Storage.
