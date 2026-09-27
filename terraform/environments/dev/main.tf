@@ -16,3 +16,20 @@ module "azure_network" {
 
   tags = local.common_tags
 }
+
+# ============================================================
+# AWS
+# ============================================================
+
+module "aws_network" {
+  source = "../../modules/aws-network"
+
+  vpc_cidr            = var.aws_vpc_cidr
+  public_subnet_cidr  = var.aws_public_subnet_cidr
+  private_subnet_cidr = var.aws_private_subnet_cidr
+
+  availability_zone = var.aws_availability_zone
+  name_prefix       = local.aws_name_prefix
+
+  tags = local.common_tags
+}

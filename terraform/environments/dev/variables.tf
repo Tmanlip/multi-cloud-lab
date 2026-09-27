@@ -50,3 +50,21 @@ variable "azure_private_subnet_cidr" {
   type        = string
   default     = "10.10.2.0/24"
 }
+
+variable "aws_public_subnet_cidr" {
+  description = "CIDR block for the AWS public/application subnet"
+  type        = string
+  default     = "10.20.1.0/24"
+}
+
+variable "aws_private_subnet_cidr" {
+  description = "CIDR block for the AWS private/service subnet"
+  type        = string
+  default     = "10.20.2.0/24"
+}
+
+variable "aws_availability_zone" {
+  description = "AWS Availability Zone used by the development environment"
+  type        = string
+  default     = "ap-southeast-1a"
+}

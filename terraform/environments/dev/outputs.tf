@@ -22,3 +22,28 @@ output "azure_private_subnet_id" {
   description = "Azure private subnet ID"
   value       = module.azure_network.private_subnet_id
 }
+
+output "aws_vpc_id" {
+  description = "AWS VPC ID"
+  value       = module.aws_network.vpc_id
+}
+
+output "aws_public_subnet_id" {
+  description = "AWS public/application subnet ID"
+  value       = module.aws_network.public_subnet_id
+}
+
+output "aws_private_subnet_id" {
+  description = "AWS private/service subnet ID"
+  value       = module.aws_network.private_subnet_id
+}
+
+output "aws_application_security_group_id" {
+  description = "AWS application security group ID"
+  value       = module.aws_network.application_security_group_id
+}
+
+output "aws_private_security_group_id" {
+  description = "AWS private security group ID"
+  value       = module.aws_network.private_security_group_id
+}
