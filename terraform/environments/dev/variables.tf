@@ -38,3 +38,15 @@ variable "aws_vpc_cidr" {
   type        = string
   default     = "10.20.0.0/16"
 }
+
+variable "azure_application_subnet_cidr" {
+  description = "CIDR block for the Azure application subnet"
+  type        = string
+  default     = "10.10.1.0/24"
+}
+
+variable "azure_private_subnet_cidr" {
+  description = "CIDR block for the Azure private/service subnet"
+  type        = string
+  default     = "10.10.2.0/24"
+}
