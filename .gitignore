@@ -49,3 +49,6 @@ crash.*.log
 # AWS credentials / exported access keys
 *_accessKeys.csv
 *_accesskeys.csv
+
+# Terraform generated Lambda packages
+terraform/modules/aws-lambda/*.zip

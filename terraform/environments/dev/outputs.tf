@@ -47,3 +47,13 @@ output "aws_private_security_group_id" {
   description = "AWS private security group ID"
   value       = module.aws_network.private_security_group_id
 }
+
+output "aws_health_function_name" {
+  description = "AWS health Lambda function name"
+  value       = module.aws_lambda.function_name
+}
+
+output "aws_health_url" {
+  description = "AWS health endpoint"
+  value       = module.aws_lambda.function_url
+}

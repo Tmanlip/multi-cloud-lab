@@ -33,3 +33,20 @@ module "aws_network" {
 
   tags = local.common_tags
 }
+
+# ============================================================
+# AWS Serverless
+# ============================================================
+
+module "aws_lambda" {
+  source = "../../modules/aws-lambda"
+
+  function_name = "mcf-dev-health"
+
+  source_file = "${path.root}/../../../application/aws-lambda/lambda_function.py"
+
+  environment = var.environment
+  app_version = "1.0.0"
+
+  tags = local.common_tags
+}
