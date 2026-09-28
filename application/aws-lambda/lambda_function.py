@@ -4,6 +4,19 @@ from datetime import datetime, timezone
 
 
 def lambda_handler(event, context):
+    path = event.get("rawPath", "/")
+
+    if path not in ["/", "/health"]:
+        return {
+            "statusCode": 404,
+            "headers": {
+                "Content-Type": "application/json"
+            },
+            "body": json.dumps({
+                "status": "not_found"
+            })
+        }
+
     response = {
         "status": "ok",
         "provider": "aws",
