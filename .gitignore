@@ -52,3 +52,7 @@ crash.*.log
 
 # Terraform generated Lambda packages
 terraform/modules/aws-lambda/*.zip
+
+# Command History
+powershell_history_*.txt
+poweshell_history_*.xml
