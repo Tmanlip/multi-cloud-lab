@@ -145,10 +145,14 @@ jobs:
         working-directory: terraform/environments/dev
 
     env:
-      ARM_USE_OIDC: "true"
-      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
-      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
-      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        ARM_USE_OIDC: "true"
+        ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+        ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+        ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+        TF_VAR_azure_subscription_id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+        TF_VAR_azure_function_app_name: ${{ vars.TF_AZURE_FUNCTION_APP_NAME }}
+        TF_VAR_azure_function_storage_name: ${{ vars.TF_AZURE_FUNCTION_STORAGE_NAME }}
 
     steps:
       - name: Checkout repository
