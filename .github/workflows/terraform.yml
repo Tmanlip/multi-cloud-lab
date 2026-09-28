@@ -92,3 +92,32 @@ jobs:
 
         - name: Verify AWS identity
           run: aws sts get-caller-identity
+
+  # ==========================================
+  # Azure Authentication
+  # ==========================================
+
+  azure-auth-test:
+    name: Azure OIDC Authentication
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Azure identity
+        run: |
+          az account show \
+            --query "{subscription:name, tenantId:tenantId}" \
+            --output table
