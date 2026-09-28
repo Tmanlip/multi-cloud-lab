@@ -4,3 +4,6 @@ azure_location = "southeastasia"
 aws_region     = "ap-southeast-1"
 
 environment = "dev"
+
+azure_function_app_name     = "func-mcf-dev-77675"
+azure_function_storage_name = "stmcfdev77675"

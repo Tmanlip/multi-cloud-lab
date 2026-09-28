@@ -50,3 +50,23 @@ module "aws_lambda" {
 
   tags = local.common_tags
 }
+
+# ============================================================
+# Azure Serverless
+# ============================================================
+
+module "azure_function" {
+  source = "../../modules/azure-function"
+
+  resource_group_name = module.azure_network.resource_group_name
+  location            = var.azure_location
+
+  function_app_name    = var.azure_function_app_name
+  storage_account_name = var.azure_function_storage_name
+  service_plan_name    = "asp-mcf-dev-sea"
+
+  environment = var.environment
+  app_version = "1.0.0"
+
+  tags = local.common_tags
+}

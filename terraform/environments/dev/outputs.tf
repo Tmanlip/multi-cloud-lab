@@ -57,3 +57,13 @@ output "aws_health_url" {
   description = "AWS health endpoint"
   value       = module.aws_lambda.function_url
 }
+
+output "azure_health_function_name" {
+  description = "Azure health Function App name"
+  value       = module.azure_function.function_app_name
+}
+
+output "azure_health_url" {
+  description = "Azure health endpoint"
+  value       = module.azure_function.health_url
+}

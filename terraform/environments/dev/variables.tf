@@ -68,3 +68,13 @@ variable "aws_availability_zone" {
   type        = string
   default     = "ap-southeast-1a"
 }
+
+variable "azure_function_app_name" {
+  description = "Globally unique Azure Function App name"
+  type        = string
+}
+
+variable "azure_function_storage_name" {
+  description = "Globally unique Azure Function storage account name"
+  type        = string
+}
