@@ -23,3 +23,18 @@ def health(req: func.HttpRequest) -> func.HttpResponse:
         status_code=200,
         mimetype="application/json",
     )
+    
+@app.route(route="fail", methods=["GET"])
+def fail(req: func.HttpRequest) -> func.HttpResponse:
+    response = {
+        "status": "error",
+        "provider": "azure",
+        "environment": os.environ.get("ENVIRONMENT", "unknown"),
+        "message": "Intentional MultiCloud Forge observability test failure",
+    }
+
+    return func.HttpResponse(
+        json.dumps(response),
+        status_code=500,
+        mimetype="application/json",
+    )

@@ -6,6 +6,10 @@ from datetime import datetime, timezone
 def lambda_handler(event, context):
     path = event.get("rawPath", "/")
 
+    # Controlled failure endpoint for observability testing.
+    if path == "/fail":
+        raise RuntimeError("Intentional MultiCloud Forge observability test failure")
+
     if path not in ["/", "/health"]:
         return {
             "statusCode": 404,

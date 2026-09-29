@@ -82,5 +82,5 @@ variable "azure_function_storage_name" {
 variable "app_version" {
   description = "Application version deployed across AWS and Azure"
   type        = string
-  default     = "1.0.1"
+  default     = "1.0.2"
 }
