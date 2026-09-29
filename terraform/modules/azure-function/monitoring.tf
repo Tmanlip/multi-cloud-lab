@@ -4,7 +4,7 @@ resource "azurerm_monitor_scheduled_query_rules_alert_v2" "function_errors" {
   location            = var.location
 
   scopes = [
-    azurerm_application_insights.function.id
+    azurerm_application_insights.function.workspace_id
   ]
 
   description = "Detects HTTP 5xx responses from the MultiCloud Forge Azure Function."
