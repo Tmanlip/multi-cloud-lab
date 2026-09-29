@@ -126,8 +126,8 @@ jobs:
   # Terraform Authentication
   # ==========================================
 
-  terraform-plan:
-    name: Terraform Plan
+  terraform-deploy:
+    name: Terraform Plan and Deploy
     runs-on: ubuntu-latest
 
     needs:
@@ -180,4 +180,28 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -input=false -out=tfplan
+
+      - name: Terraform Apply
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: terraform apply -input=false -auto-approve tfplan
+
+      - name: Get deployment endpoints
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: endpoints
+        run: |
+            AWS_BASE=$(terraform output -raw aws_health_url)
+            AZURE_HEALTH=$(terraform output -raw azure_health_url)
+
+            AWS_HEALTH="${AWS_BASE%/}/health"
+
+            echo "aws_health=$AWS_HEALTH" >> "$GITHUB_OUTPUT"
+            echo "azure_health=$AZURE_HEALTH" >> "$GITHUB_OUTPUT"
+
+      - name: Verify multi-cloud deployment
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+            python tests/connectivity/test_health.py \
+            "${{ steps.endpoints.outputs.aws_health }}" \
+            "${{ steps.endpoints.outputs.azure_health }}"
