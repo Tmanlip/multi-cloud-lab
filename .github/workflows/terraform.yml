@@ -243,3 +243,25 @@ jobs:
           python tests/failover/test_failover.py \
             "https://invalid.multicloud-forge.local/health" \
             "${{ steps.endpoints.outputs.azure_health }}"
+
+      - name: Test total multi-cloud outage detection
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          set +e
+
+          python tests/failover/test_failover.py \
+            "https://invalid-aws.multicloud-forge.local/health" \
+            "https://invalid-azure.multicloud-forge.local/health"
+
+          EXIT_CODE=$?
+
+          set -e
+
+          if [ "$EXIT_CODE" -eq 1 ]; then
+            echo "[PASS] Total outage correctly detected."
+            exit 0
+          fi
+
+          echo "[FAIL] Expected exit code 1, received $EXIT_CODE."
+          exit 1
