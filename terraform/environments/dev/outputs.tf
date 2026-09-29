@@ -67,3 +67,8 @@ output "azure_health_url" {
   description = "Azure health endpoint"
   value       = module.azure_function.health_url
 }
+
+output "aws_lambda_error_alarm_name" {
+  description = "AWS Lambda CloudWatch error alarm"
+  value       = module.aws_lambda.error_alarm_name
+}

@@ -17,3 +17,8 @@ output "execution_role_arn" {
   description = "ARN of the Lambda execution role"
   value       = aws_iam_role.lambda.arn
 }
+
+output "error_alarm_name" {
+  description = "Name of the Lambda CloudWatch error alarm"
+  value       = aws_cloudwatch_metric_alarm.lambda_errors.alarm_name
+}
