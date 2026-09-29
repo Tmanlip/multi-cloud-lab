@@ -19,6 +19,5 @@ output "managed_identity_principal_id" {
 }
 
 output "error_alert_name" {
-  description = "Name of the Azure Function error metric alert"
-  value       = azurerm_monitor_metric_alert.function_errors.name
+  value = azurerm_monitor_scheduled_query_rules_alert_v2.function_errors.name
 }

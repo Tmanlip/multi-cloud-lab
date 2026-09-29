@@ -1,0 +1,47 @@
+[1mdiff --git a/.github/workflows/terraform.yml b/.github/workflows/terraform.yml[m
+[1mindex 4d68d39..632e702 100644[m
+[1m--- a/.github/workflows/terraform.yml[m
+[1m+++ b/.github/workflows/terraform.yml[m
+[36m@@ -126,8 +126,8 @@[m [mjobs:[m
+   # Terraform Authentication[m
+   # ==========================================[m
+ [m
+[31m-  terraform-plan:[m
+[31m-    name: Terraform Plan[m
+[32m+[m[32m  terraform-deploy:[m
+[32m+[m[32m    name: Terraform Plan and Deploy[m
+     runs-on: ubuntu-latest[m
+ [m
+     needs:[m
+[36m@@ -180,4 +180,28 @@[m [mjobs:[m
+         run: terraform init[m
+ [m
+       - name: Terraform Plan[m
+[31m-        run: terraform plan -input=false[m
+\ No newline at end of file[m
+[32m+[m[32m        run: terraform plan -input=false -out=tfplan[m
+[32m+[m
+[32m+[m[32m      - name: Terraform Apply[m
+[32m+[m[32m        if: github.event_name == 'push' && github.ref == 'refs/heads/main'[m
+[32m+[m[32m        run: terraform apply -input=false -auto-approve tfplan[m
+[32m+[m
+[32m+[m[32m      - name: Get deployment endpoints[m
+[32m+[m[32m        if: github.event_name == 'push' && github.ref == 'refs/heads/main'[m
+[32m+[m[32m        id: endpoints[m
+[32m+[m[32m        run: |[m
+[32m+[m[32m            AWS_BASE=$(terraform output -raw aws_health_url)[m
+[32m+[m[32m            AZURE_HEALTH=$(terraform output -raw azure_health_url)[m
+[32m+[m
+[32m+[m[32m            AWS_HEALTH="${AWS_BASE%/}/health"[m
+[32m+[m
+[32m+[m[32m            echo "aws_health=$AWS_HEALTH" >> "$GITHUB_OUTPUT"[m
+[32m+[m[32m            echo "azure_health=$AZURE_HEALTH" >> "$GITHUB_OUTPUT"[m
+[32m+[m
+[32m+[m[32m      - name: Verify multi-cloud deployment[m
+[32m+[m[32m        if: github.event_name == 'push' && github.ref == 'refs/heads/main'[m
+[32m+[m[32m        working-directory: ${{ github.workspace }}[m
+[32m+[m[32m        run: |[m
+[32m+[m[32m            python tests/connectivity/test_health.py \[m
+[32m+[m[32m            "${{ steps.endpoints.outputs.aws_health }}" \[m
+[32m+[m[32m            "${{ steps.endpoints.outputs.azure_health }}"[m
+\ No newline at end of file[m

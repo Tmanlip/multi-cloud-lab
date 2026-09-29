@@ -65,5 +65,11 @@ resource "azurerm_linux_function_app" "health" {
     "REGION"      = var.location
   }
 
+  lifecycle {
+    ignore_changes = [
+      app_settings["WEBSITE_RUN_FROM_PACKAGE"]
+    ]
+  }
+
   tags = var.tags
 }
