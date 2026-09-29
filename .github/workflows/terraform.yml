@@ -205,3 +205,21 @@ jobs:
             python tests/connectivity/test_health.py \
             "${{ steps.endpoints.outputs.aws_health }}" \
             "${{ steps.endpoints.outputs.azure_health }}"
+
+  # ==========================================
+  # Azure Function Deployment
+  # ==========================================
+
+      - name: Deploy Azure Function application
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd application/azure-function
+          zip -r ../../azure-function.zip . \
+            -x ".python_packages/*" \
+            -x "__pycache__/*"
+
+          az functionapp deployment source config-zip \
+            --resource-group rg-mcf-dev-sea \
+            --name "${{ vars.TF_AZURE_FUNCTION_APP_NAME }}" \
+            --src ../../azure-function.zip
