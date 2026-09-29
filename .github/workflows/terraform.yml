@@ -223,3 +223,23 @@ jobs:
             --resource-group rg-mcf-dev-sea \
             --name "${{ vars.TF_AZURE_FUNCTION_APP_NAME }}" \
             --src ../../azure-function.zip
+
+  # ==========================================
+  # Failover
+  # ==========================================
+
+      - name: Test primary cloud routing
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          python tests/failover/test_failover.py \
+            "${{ steps.endpoints.outputs.aws_health }}" \
+            "${{ steps.endpoints.outputs.azure_health }}"
+
+      - name: Test AWS failure and Azure failover
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: |
+          python tests/failover/test_failover.py \
+            "https://invalid.multicloud-forge.local/health" \
+            "${{ steps.endpoints.outputs.azure_health }}"
