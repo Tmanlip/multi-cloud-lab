@@ -186,6 +186,11 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: terraform apply -input=false -auto-approve tfplan
 
+      - name: Validate deployed infrastructure
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        working-directory: ${{ github.workspace }}
+        run: python tests/infrastructure/test_terraform.py
+
       - name: Get deployment endpoints
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: endpoints
