@@ -78,3 +78,9 @@ variable "azure_function_storage_name" {
   description = "Globally unique Azure Function storage account name"
   type        = string
 }
+
+variable "app_version" {
+  description = "Application version deployed across AWS and Azure"
+  type        = string
+  default     = "1.0.1"
+}

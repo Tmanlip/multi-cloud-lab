@@ -46,7 +46,7 @@ module "aws_lambda" {
   source_file = "${path.root}/../../../application/aws-lambda/lambda_function.py"
 
   environment = var.environment
-  app_version = "1.0.0"
+  app_version = var.app_version
 
   tags = local.common_tags
 }
@@ -66,7 +66,7 @@ module "azure_function" {
   service_plan_name    = "asp-mcf-dev-sea"
 
   environment = var.environment
-  app_version = "1.0.0"
+  app_version = var.app_version
 
   tags = local.common_tags
 }
