@@ -17,3 +17,8 @@ output "managed_identity_principal_id" {
   description = "Principal ID of the Function App managed identity"
   value       = azurerm_linux_function_app.health.identity[0].principal_id
 }
+
+output "error_alert_name" {
+  description = "Name of the Azure Function error metric alert"
+  value       = azurerm_monitor_metric_alert.function_errors.name
+}

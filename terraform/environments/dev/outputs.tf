@@ -72,3 +72,8 @@ output "aws_lambda_error_alarm_name" {
   description = "AWS Lambda CloudWatch error alarm"
   value       = module.aws_lambda.error_alarm_name
 }
+
+output "azure_function_error_alert_name" {
+  description = "Azure Function Monitor error alert"
+  value       = module.azure_function.error_alert_name
+}
