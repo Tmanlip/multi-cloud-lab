@@ -1,162 +1,554 @@
-# MultiCloud Forge — Network Architecture
+# MultiCloud Forge Networking
 
-## Overview
+## 1. Overview
 
-MultiCloud Forge uses isolated Azure and AWS networks managed through Terraform.
+MultiCloud Forge provisions separate network foundations in Amazon Web
+Services (AWS) and Microsoft Azure using reusable Terraform modules.
 
-The development environment does not implement direct cross-cloud connectivity.
-Azure and AWS therefore operate as independent network domains.
+The networking layer is intentionally simple. Its purpose is to
+demonstrate multi-cloud network design, segmentation, routing, security
+controls, Infrastructure as Code, and comparable cloud architecture
+without introducing unnecessary always-on networking services.
 
----
+The implemented network modules are:
 
-## Azure Network
+``` text
+terraform/modules/aws-network/
+terraform/modules/azure-network/
+```
 
-### Virtual Network
+The development environment composes both modules from:
 
-| Resource | Value |
-|---|---|
-| VNet | `vnet-mcf-dev-sea` |
-| Region | Southeast Asia |
-| Address Space | `10.10.0.0/16` |
+``` text
+terraform/environments/dev/
+```
 
-### Subnets
+------------------------------------------------------------------------
 
-| Subnet | CIDR | Purpose |
-|---|---|---|
-| `snet-mcf-app-dev-sea` | `10.10.1.0/24` | Application/serverless integration |
-| `snet-mcf-private-dev-sea` | `10.10.2.0/24` | Private/service resources |
-| Reserved | `10.10.10.0/24` | Future expansion |
+## 2. Network Design Goals
 
-### Network Security Groups
+The network architecture was designed to:
 
-- `nsg-mcf-app-dev-sea`
-- `nsg-mcf-private-dev-sea`
+1.  Provide non-overlapping address spaces for AWS and Azure.
+2.  Separate application-facing and private network segments.
+3.  Apply network security controls at the subnet/workload boundary.
+4.  Keep routing understandable and auditable.
+5.  Use Terraform for repeatable provisioning.
+6.  Avoid unnecessary fixed-cost networking components.
+7.  Provide a foundation that can later support private workloads or
+    cross-cloud connectivity.
 
-No custom inbound rules are currently configured.
+The project does not currently implement direct AWS-to-Azure private
+connectivity. The two cloud networks are independent environments.
 
-Custom rules will only be introduced when a workload has a documented
-network requirement.
+------------------------------------------------------------------------
 
----
+## 3. High-Level Network Architecture
 
-## AWS Network
+``` text
+                         Internet
+                            |
+              +-------------+-------------+
+              |                           |
+              v                           v
+             AWS                         Azure
+              |                           |
+              v                           v
+        VPC 10.20.0.0/16           VNet 10.10.0.0/16
+              |                           |
+        +-----+-----+               +-----+-----+
+        |           |               |           |
+        v           v               v           v
+      Public      Private       Application    Private
+      Subnet      Subnet          Subnet       Subnet
+        |           |               |           |
+        +-----+-----+               +-----+-----+
+              |                           |
+       Security Groups                    NSGs
+```
 
-### VPC
+AWS and Azure use separate CIDR ranges so the environments can later be
+connected without immediate address-space overlap.
 
-| Resource | Value |
-|---|---|
-| VPC | `mcf-dev-vpc` |
-| Region | `ap-southeast-1` |
-| Address Space | `10.20.0.0/16` |
+------------------------------------------------------------------------
 
-### Subnets
+## 4. Addressing Strategy
 
-| Subnet | CIDR | Type |
-|---|---|---|
-| `mcf-dev-public-subnet` | `10.20.1.0/24` | Public/Application |
-| `mcf-dev-private-subnet` | `10.20.2.0/24` | Private/Service |
-| Reserved | `10.20.10.0/24` | Future expansion |
+The development environment uses the following top-level address spaces:
 
-### Public Routing
+  Provider   Network           CIDR
+  ---------- ----------------- ----------------
+  Azure      Virtual Network   `10.10.0.0/16`
+  AWS        VPC               `10.20.0.0/16`
 
-The public subnet is associated with a dedicated public route table.
+The address spaces are intentionally different.
 
-Traffic path:
+This design provides room for subnet expansion while avoiding overlap
+between the two providers.
 
+------------------------------------------------------------------------
+
+## 5. AWS Network
+
+The AWS network is defined in:
+
+``` text
+terraform/modules/aws-network/
+```
+
+The deployed foundation includes:
+
+-   AWS VPC
+-   Public subnet
+-   Private subnet
+-   Internet Gateway
+-   Public route table
+-   Private route table
+-   Route-table associations
+-   Application security group
+-   Private security group
+
+Terraform infrastructure validation confirmed that the AWS VPC, subnets,
+route table, Internet Gateway, and security groups are present in state.
+
+------------------------------------------------------------------------
+
+## 6. AWS VPC
+
+The AWS environment uses:
+
+``` text
+VPC: 10.20.0.0/16
+Region: ap-southeast-1
+```
+
+The VPC provides the isolation boundary for the AWS network resources.
+
+The network is divided into public and private segments rather than
+placing all future workloads into a single subnet.
+
+------------------------------------------------------------------------
+
+## 7. AWS Subnet Segmentation
+
+The current AWS design separates:
+
+``` text
+10.20.0.0/16
+      |
+      +-- Public subnet
+      |
+      +-- Private subnet
+```
+
+The public subnet is intended for resources that require a route toward
+the public Internet.
+
+The private subnet establishes a separate network segment for workloads
+that should not require direct public exposure.
+
+This is an architectural foundation; the current Lambda health workload
+is serverless and is not dependent on deployment into these subnets.
+
+------------------------------------------------------------------------
+
+## 8. AWS Internet Connectivity
+
+An Internet Gateway is attached to the VPC.
+
+The public route table provides the Internet-facing routing path for the
+public network segment and is associated with the public subnet.
+
+Conceptually:
+
+``` text
 Public Subnet
-→ Public Route Table
-→ `0.0.0.0/0`
-→ Internet Gateway
-→ Internet
+     |
+     v
+Public Route Table
+     |
+     v
+Internet Gateway
+     |
+     v
+Internet
+```
 
-Resources must still have an appropriate public IP and security-group
-rules before they can receive traffic from the Internet.
+The private subnet uses a separate route table.
 
-### Private Routing
+This separation prevents the project from treating public and private
+network segments as equivalent.
 
-The private subnet uses a dedicated private route table.
+------------------------------------------------------------------------
 
-There is no default Internet route and no NAT Gateway.
+## 9. AWS Cost-Aware Routing
 
-This keeps the development environment inexpensive while maintaining
-clear public/private network separation.
+The project deliberately keeps the network suitable for a low-cost lab.
 
-### Security Groups
+A continuously provisioned NAT Gateway can introduce a fixed hourly cost
+plus data-processing charges. MultiCloud Forge therefore avoids making a
+NAT Gateway a required part of the current baseline architecture.
 
-- `mcf-dev-app-sg`
-- `mcf-dev-private-sg`
+If a future private workload requires outbound Internet access, NAT or
+another controlled egress design can be introduced as a documented
+architecture change.
 
-No inbound rules are currently configured.
+------------------------------------------------------------------------
 
-Outbound traffic is permitted by the security groups, but the private
-subnet does not have an Internet route.
+## 10. AWS Security Groups
 
----
+The AWS network module creates separate security groups for application
+and private roles.
 
-## Cross-Cloud Connectivity
+This creates a logical separation between:
 
-There is currently no:
+``` text
+Application security boundary
+             |
+             v
+Private security boundary
+```
 
-- Site-to-Site VPN
-- VNet-to-VPC peering
-- Transit Gateway
-- Virtual WAN
-- Direct Connect
-- ExpressRoute
+Security groups are stateful controls. Rules should remain limited to
+traffic required by the workload rather than being expanded for
+convenience.
 
-Azure and AWS therefore have no direct private network route between
-`10.10.0.0/16` and `10.20.0.0/16`.
+The Terraform module is the source of truth for the exact ingress and
+egress rules.
 
-Cross-cloud communication introduced by later application components
-will use authenticated application/API communication rather than direct
-private network routing.
+------------------------------------------------------------------------
 
----
+## 11. Azure Network
 
-## CIDR Allocation
+The Azure network is defined in:
 
-| Cloud | Network | CIDR |
-|---|---|---|
-| Azure | VNet | `10.10.0.0/16` |
-| Azure | Application | `10.10.1.0/24` |
-| Azure | Private | `10.10.2.0/24` |
-| Azure | Reserved | `10.10.10.0/24` |
-| AWS | VPC | `10.20.0.0/16` |
-| AWS | Public/Application | `10.20.1.0/24` |
-| AWS | Private | `10.20.2.0/24` |
-| AWS | Reserved | `10.20.10.0/24` |
+``` text
+terraform/modules/azure-network/
+```
 
-The Azure and AWS CIDR ranges do not overlap, leaving the architecture
-compatible with future private cross-cloud connectivity if required.
+The deployed foundation includes:
 
----
+-   Resource group
+-   Virtual Network
+-   Application subnet
+-   Private subnet
+-   Application Network Security Group
+-   Private Network Security Group
+-   NSG-to-subnet associations
 
-## Cost Considerations
+Infrastructure validation confirmed that the Azure resource group, VNet,
+subnets, and NSGs are represented in Terraform state.
 
-The development network intentionally avoids cost-heavy networking
-components such as:
+------------------------------------------------------------------------
 
-- AWS NAT Gateway
-- AWS Transit Gateway
-- Azure VPN Gateway
-- Azure Firewall
+## 12. Azure Virtual Network
 
-The network therefore demonstrates segmentation, routing, and security
-controls while keeping recurring lab costs low.
+The Azure development environment uses:
 
----
+``` text
+VNet: 10.10.0.0/16
+Region: southeastasia
+```
 
-## Terraform Management
+The VNet provides the primary Azure network boundary.
 
-The Azure and AWS networks are managed through reusable Terraform
-modules:
+Its address space is intentionally distinct from the AWS VPC:
 
-`terraform/modules/azure-network`
+``` text
+Azure: 10.10.0.0/16
+AWS:   10.20.0.0/16
+```
 
-`terraform/modules/aws-network`
+This avoids CIDR overlap and leaves open the possibility of future
+routed connectivity between the clouds.
 
-Both modules are instantiated from:
+------------------------------------------------------------------------
 
-`terraform/environments/dev`
+## 13. Azure Subnet Segmentation
 
-Terraform state is stored remotely in Azure Blob Storage.
+The Azure VNet is separated into:
+
+``` text
+10.10.0.0/16
+      |
+      +-- Application subnet
+      |
+      +-- Private subnet
+```
+
+The application subnet represents the network segment intended for
+application-facing resources.
+
+The private subnet provides a separate segment for resources that should
+have a more restricted network role.
+
+The current Azure Function is deployed as a serverless Function App and
+the presence of these subnets should not be interpreted as proof that
+the Function App is VNet-integrated.
+
+------------------------------------------------------------------------
+
+## 14. Azure Network Security Groups
+
+Separate NSGs are associated with the application and private subnets.
+
+Conceptually:
+
+``` text
+Application NSG
+      |
+      v
+Application Subnet
+
+Private NSG
+      |
+      v
+Private Subnet
+```
+
+This makes network policy part of the Terraform-managed architecture
+rather than an undocumented portal configuration.
+
+The exact NSG rules remain defined by the Terraform module.
+
+------------------------------------------------------------------------
+
+## 15. AWS and Azure Network Mapping
+
+  -----------------------------------------------------------------------------
+  Networking Concept      AWS                           Azure
+  ----------------------- ----------------------------- -----------------------
+  Network boundary        VPC                           VNet
+
+  Address space           `10.20.0.0/16`                `10.10.0.0/16`
+
+  Application segment     Public/application-oriented   Application subnet
+                          subnet                        
+
+  Restricted segment      Private subnet                Private subnet
+
+  Traffic control         Security Groups               Network Security Groups
+
+  Public routing          Route table + Internet        Azure platform routing
+                          Gateway                       / configured subnet
+                                                        policy
+
+  IaC module              `aws-network`                 `azure-network`
+  -----------------------------------------------------------------------------
+
+The implementations are not forced to be identical. Each provider uses
+its native networking model while following the same architectural
+principles.
+
+------------------------------------------------------------------------
+
+## 16. Serverless Workloads and Networking
+
+The project currently runs:
+
+``` text
+AWS Lambda
+Azure Function
+```
+
+The health APIs are exposed using cloud-native serverless HTTP
+endpoints.
+
+The networking modules demonstrate the network foundation independently
+of those serverless endpoints.
+
+This distinction is important:
+
+``` text
+Network foundation
+      !=
+Serverless function automatically attached to subnet
+```
+
+A future version could explicitly add Lambda VPC attachment or Azure
+Function VNet integration if a private dependency requires it.
+
+------------------------------------------------------------------------
+
+## 17. Cross-Cloud Connectivity
+
+MultiCloud Forge currently does not deploy:
+
+-   Site-to-Site VPN
+-   AWS Transit Gateway
+-   Azure VPN Gateway
+-   Azure Virtual WAN
+-   Direct Connect
+-   ExpressRoute
+-   Cross-cloud private peering
+
+AWS and Azure communicate only at the application/test layer through
+public HTTPS endpoints where required.
+
+This keeps the lab inexpensive and avoids presenting simulated failover
+as private network-level failover.
+
+------------------------------------------------------------------------
+
+## 18. DNS and Endpoint Access
+
+The health workloads use provider-managed HTTPS endpoints.
+
+AWS exposes the Lambda through a Lambda Function URL.
+
+Azure exposes the Function through its Azure Websites hostname.
+
+The project does not currently operate a custom cross-cloud DNS failover
+layer.
+
+Failover behavior is validated by the test logic rather than by changing
+production DNS records.
+
+------------------------------------------------------------------------
+
+## 19. Network Validation
+
+Infrastructure validation is performed by:
+
+``` text
+tests/infrastructure/test_terraform.py
+```
+
+The test verifies that expected Terraform-managed networking resource
+types are represented in state.
+
+Validated AWS types include:
+
+``` text
+aws_vpc
+aws_subnet
+aws_route_table
+aws_internet_gateway
+aws_security_group
+```
+
+Validated Azure types include:
+
+``` text
+azurerm_virtual_network
+azurerm_subnet
+azurerm_network_security_group
+```
+
+This confirms that the network foundation is part of the deployed
+Terraform environment.
+
+------------------------------------------------------------------------
+
+## 20. Availability Validation
+
+Application reachability is validated separately from network-resource
+existence.
+
+The health test is:
+
+``` text
+tests/connectivity/test_health.py
+```
+
+It validates both serverless endpoints and confirms their provider,
+region, environment, and application version.
+
+This separates two different questions:
+
+``` text
+Infrastructure test -> Were expected resources provisioned?
+Health test         -> Are deployed workloads responding?
+```
+
+------------------------------------------------------------------------
+
+## 21. Failover Validation
+
+Resilience behavior is tested through:
+
+``` text
+tests/failover/test_failover.py
+```
+
+The test models AWS as the primary endpoint and Azure as the fallback
+endpoint.
+
+The validated paths are:
+
+``` text
+AWS healthy
+    |
+    v
+ACTIVE AWS
+```
+
+and:
+
+``` text
+AWS unavailable
+    |
+    v
+Check Azure
+    |
+    v
+Azure healthy
+    |
+    v
+FAILOVER Azure
+```
+
+This is application-level failover simulation. It is not a claim of
+automatic network routing or DNS failover.
+
+------------------------------------------------------------------------
+
+## 22. Network Security Principles
+
+The network design follows these principles:
+
+-   Separate cloud address spaces.
+-   Separate application/public and private network segments.
+-   Use provider-native network security controls.
+-   Keep policy managed through Terraform.
+-   Avoid unnecessary public exposure.
+-   Avoid expensive networking services unless justified.
+-   Do not assume subnet placement that is not explicitly configured.
+-   Keep future cross-cloud connectivity possible by avoiding CIDR
+    overlap.
+
+------------------------------------------------------------------------
+
+## 23. Current Limitations
+
+The current networking implementation does not provide:
+
+-   Private AWS-to-Azure connectivity
+-   Centralized cross-cloud routing
+-   Managed global load balancing
+-   Automatic DNS failover
+-   Network firewall appliances
+-   Production-grade multi-region routing
+-   Confirmed private integration of the serverless workloads with the
+    provisioned subnets
+
+These are deliberate boundaries for a low-cost engineering lab.
+
+------------------------------------------------------------------------
+
+## 24. Future Improvements
+
+Possible networking extensions include:
+
+-   Explicit Lambda VPC integration
+-   Azure Function VNet integration
+-   Private endpoints for supported services
+-   Temporary Site-to-Site VPN experimentation
+-   Route validation tests
+-   Network flow logging
+-   DNS-based health routing
+-   Multi-region network modules
+-   More granular security-group and NSG tests
+
+Any extension should be evaluated against the project's low-cost
+objective before deployment.
