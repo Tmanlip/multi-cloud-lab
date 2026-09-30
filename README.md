@@ -255,4 +255,4 @@ Documentation               Complete
 
 Start with the architecture overview and use the supporting documents for deeper implementation details:
 
-**[Architecture](docs/architecture.md)** · **[Deployment](docs/deployment.md)** · **[Networking](docs/networking.md)** · **[Security](docs/security.md)** · **[Observability](docs/observability.md)** · **[Cost Analysis](docs/cost-analysis.md)**git
+**[Architecture](docs/architecture.md)** · **[Deployment](docs/deployment.md)** · **[Networking](docs/networking.md)** · **[Security](docs/security.md)** · **[Observability](docs/observability.md)** · **[Cost Analysis](docs/cost-analysis.md)**
